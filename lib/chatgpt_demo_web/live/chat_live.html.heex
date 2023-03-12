@@ -1,0 +1,22 @@
+<div class="flex flex-col max-w-4xl min-h-screen items-center">
+    <h1 class="text-2xl">ChatGPT Demo</h1>
+    <.simple_form class="w-full" for={@form} id="send-message" phx-submit="submit">
+        <.input field={@form[:content]} />
+        <:actions>
+            <.button><.icon name="hero-paper-airplane-solid" /></.button>
+        </:actions>
+    </.simple_form>
+    <div class="mt-4 text-ms" id="messages", phx-update="stream">
+    <%= for {message_id, message} <- @streams.messages do %>
+        <%= case message.role do %>
+            <% :user -> %>
+                <p id={message_id}><span class="font-semibold">User:</span> <%= message.content%></p>
+            <% :assistant -> %>
+                <p id={message_id}><span class="font-semibold">ChatGPT:</span> <%= message.content%></p>
+        <% end %>
+    <% end %>
+    </div>
+    <div class="mt-6">
+        <.button phx-click="reset"><.icon name="hero-archive-box-x-mark" /></.button>
+    </div>
+</div>
