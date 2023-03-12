@@ -2,6 +2,7 @@ defmodule ChatgptDemoWeb.ChatLive do
   use ChatgptDemoWeb, :live_view
   alias ChatgptDemo.Repo
   alias ChatgptDemo.Chat.Message
+  require Logger
 
   def mount(_sesstion, _params, socket) do
     messages = Repo.all(Message)
@@ -17,9 +18,11 @@ defmodule ChatgptDemoWeb.ChatLive do
   def handle_event("submit", %{"content" => content}, socket) do
     case insert_message(%{role: :user, content: content}) do
       {:ok, message} ->
+        send(self(), :chat_completion)
         {:noreply, stream_insert(socket, :messages, message)}
 
-      {:error, _changeset} ->
+      {:error, changeset} ->
+        Logger.error(inspect(changeset))
         {:noreply, socket}
     end
   end
@@ -29,9 +32,48 @@ defmodule ChatgptDemoWeb.ChatLive do
     {:noreply, push_navigate(socket, to: "/chat")}
   end
 
+  def handle_info(:chat_completion, socket) do
+    with(
+      {:ok, chatgpt_reply} <- get_chatgpt_reply(),
+      {:ok, message} <- insert_message(%{role: :assistant, content: chatgpt_reply})
+    ) do
+      {:noreply, stream_insert(socket, :messages, message)}
+    else
+      err ->
+        Logger.error(inspect(err))
+        {:noreply, socket}
+    end
+  end
+
   defp insert_message(params) do
     %Message{}
     |> Message.changeset(params)
     |> Repo.insert()
+  end
+
+  defp get_chatgpt_reply() do
+    messages =
+      Message
+      |> Repo.all()
+      |> Enum.map(fn msg -> %{role: msg.role, content: msg.content} end)
+      |> List.insert_at(0, init_chatgpt_prompt())
+
+    case OpenAI.chat_completion(model: "gpt-3.5-turbo", messages: messages) do
+      {:ok, res} ->
+        Logger.debug(res)
+        %{"message" => %{"content" => content}} = hd(res.choices)
+        {:ok, content}
+      err ->
+        {:error, err}
+    end
+  end
+
+  defp init_chatgpt_prompt() do
+    %{
+      role: :system,
+      content: """
+      あなたはお嬢様としてロールプレイを行います。お嬢様になりきってください。一人称は「わたくし」です。語尾に「ですわ」と付くことが多いです。
+      """
+    }
   end
 end
