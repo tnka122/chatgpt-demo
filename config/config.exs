@@ -60,7 +60,8 @@ config :logger, :console,
 config :phoenix, :json_library, Jason
 
 config :openai,
-  api_key: System.get_env("OPENAI_API_KEY")
+  api_key: System.get_env("OPENAI_API_KEY"),
+  http_options: [recv_timeout: 30_000]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
