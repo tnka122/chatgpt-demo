@@ -36,7 +36,7 @@ defmodule ChatgptDemoWeb.ChatLive do
 
   def handle_event("reset", _params, socket) do
     Repo.delete_all(Message)
-    {:noreply, push_navigate(socket, to: "/chat")}
+    {:noreply, stream(socket, :messages, [], reset: true)}
   end
 
   def handle_info(:chat_completion, socket) do
