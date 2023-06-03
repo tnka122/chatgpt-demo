@@ -20,7 +20,13 @@ defmodule ChatgptDemoWeb.ChatLive do
     case insert_message(%{role: :user, content: content}) do
       {:ok, message} ->
         send(self(), :chat_completion)
-        {:noreply, socket |> assign(:submittable?, false) |> stream_insert(:messages, message)}
+
+        socket =
+          socket
+          |> assign(:submittable?, false)
+          |> stream_insert(:messages, message)
+
+        {:noreply, socket}
 
       {:error, changeset} ->
         Logger.error(inspect(changeset))
@@ -38,7 +44,12 @@ defmodule ChatgptDemoWeb.ChatLive do
       {:ok, chatgpt_reply} <- get_chatgpt_reply(),
       {:ok, message} <- insert_message(%{role: :assistant, content: chatgpt_reply})
     ) do
-      {:noreply, socket |> assign(:submittable?, true) |> stream_insert(:messages, message)}
+      socket =
+        socket
+        |> assign(:submittable?, true)
+        |> stream_insert(:messages, message)
+
+      {:noreply, socket}
     else
       err ->
         Logger.error(inspect(err))
@@ -64,6 +75,7 @@ defmodule ChatgptDemoWeb.ChatLive do
         Logger.debug(res)
         %{"message" => %{"content" => content}} = hd(res.choices)
         {:ok, content}
+
       err ->
         {:error, err}
     end
